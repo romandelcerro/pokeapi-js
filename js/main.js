@@ -1,37 +1,113 @@
-let url = "https://pokeapi.co/api/v2/pokemon/";
+let url = "https://pokeapi.co/api/v2/pokemon";
 const pokemonList = document.querySelector("#pokemonList");
 const headerButtons = document.querySelectorAll(".btn-header");
-
+let limit = 30;
+let offset = 0;
+let allPokemon = [];
+let botonId="null";
 document.addEventListener('DOMContentLoaded', () => {
   getPokemonData();
+  navButtons();
 });
 
-async function getPokemonData() {
+const pageNumbersContainer = document.querySelector("#pageNumbers");
+let currentPage = 1;
 
-  for (let i = 1; i <= 151; i++) {
+function renderPageNumbers(totalPages) {
+  pageNumbersContainer.innerHTML = "";
 
-    try {
-        const response = await fetch(url + i);
-        const pokemonData = await response.json();
+  const maxPageNumbers = Math.min(totalPages, 9); 
 
-        const pokemon = {
-          id: pokemonData.id,
-          img: pokemonData.sprites.other["official-artwork"].front_default,
-          name: pokemonData.name,
-          height: pokemonData.height,
-          weight: pokemonData.weight,
-          types: pokemonData.types.map((type) => type.type.name)
-        };
+  const startPage = Math.max(1, currentPage - Math.floor(maxPageNumbers / 2));
+  const endPage = Math.min(totalPages, startPage + maxPageNumbers - 1);
 
-        showPokemon(pokemon);
-    } catch (error) {
-    console.log("Error fetching Pokémon data:", error);
+  for (let i = startPage; i <= endPage; i++) {
+    const pageNumber = document.createElement("button");
+    pageNumber.classList.add("page-number");
+    pageNumber.textContent = i;
+
+    if (i === currentPage) {
+      pageNumber.classList.add("active");
+    }
+
+    
+    pageNumber.addEventListener("click", () => {
+      currentPage = i;
+      offset = (currentPage - 1) * limit; 
+      pokemonList.innerHTML = "";
+      getPokemonData();
+      updateActivePageNumber();
+    });
+    
+    pageNumbersContainer.appendChild(pageNumber);
   }
+}
+
+function updateActivePageNumber() {
+  const pageNumbers = pageNumbersContainer.querySelectorAll(".page-number");
+
+  pageNumbers.forEach((pageNumber) => {
+    const pageNumberValue = parseInt(pageNumber.textContent);
+
+    if (pageNumberValue === currentPage) {
+      pageNumber.classList.add("active");
+    } else {
+      pageNumber.classList.remove("active");
+    }
+  });
+}
+
+async function getPokemonData() {
+  try {
+    const response = await fetch(`${url}?limit=${limit}&offset=${offset}`);
+    const data = await response.json();
+
+    const pokemonPromises = data.results.map(async (data) => {
+      const pokemonResponse = await fetch(data.url);
+      const pokemonData = await pokemonResponse.json();
+      const pokemon = {
+        id: pokemonData.id,
+        img: pokemonData.sprites.other["official-artwork"].front_default,
+        name: pokemonData.name,
+        height: pokemonData.height,
+        weight: pokemonData.weight,
+        types: pokemonData.types.map((type) => type.type.name),
+      };
+
+      return pokemon;
+    });
+    
+    
+    
+    allPokemon = [];
+
+    if(botonId!=="null"){
+      const pokemons = await Promise.all(pokemonPromises);
+      const filteredPokemons = pokemons.filter((pokemon) => pokemon.types.includes(botonId));
+
+      allPokemon = [...allPokemon, ...filteredPokemons];
+      
+      allPokemon.forEach((pokemon) => {
+        showPokemon(pokemon);
+      });
+
+    }else{
+      allPokemon = [];
+      allPokemon = await Promise.all(pokemonPromises);
+      allPokemon.forEach((pokemon) => {
+        showPokemon(pokemon);
+      });
+    }
+
+    const totalPages = Math.ceil(data.count / limit);
+    renderPageNumbers(totalPages);
+    updateActivePageNumber();
+  } catch (error) {
+    console.log("Error fetching Pokémon data:", error);
   }
 }
 
 function showPokemon(pokemon) {
-
   let pokeId = pokemonId(pokemon);
   let pokeType = pokemonTypes(pokemon);
 
@@ -64,13 +140,15 @@ function showPokemon(pokemon) {
 }
 
 function pokemonId(pokemon) {
-
   let pokeId = pokemon.id.toString();
 
   if (pokeId.length === 1) {
-    return pokeId = "00" + pokeId;
+    return pokeId = "000" + pokeId;
   } 
   else if (pokeId.length === 2) {
+    return pokeId = "00" + pokeId;
+  }
+  else if (pokeId.length === 3) {
     return pokeId = "0" + pokeId;
   } 
   else {
@@ -83,35 +161,86 @@ function pokemonTypes(pokemon) {
   return tipos.join('');
 }
 
-headerButtons.forEach(btn => btn.addEventListener("click", async (event) => {
-  const botonId = event.currentTarget.id;
+const prevButton = document.querySelector("#prevButton");
+const nextButton = document.querySelector("#nextButton");
 
-  pokemonList.innerHTML = "";
-
-  for (let i = 1; i <= 151; i++) {
-    try {
-      const response = await fetch(url + i);
-      const data = await response.json();
-
-      const pokemon = {
-        id: data.id,
-        img: data.sprites.other["official-artwork"].front_default,
-        name: data.name,
-        height: data.height,
-        weight: data.weight,
-        types: data.types.map((type) => type.type.name)
-      };
-
-      if (botonId === "see-all") {
-        showPokemon(pokemon);
-      } else {
-        const tipos = data.types.map((type) => type.type.name);
-        if (tipos.includes(botonId)) {
-          showPokemon(pokemon);
-        }
-      }
-    } catch (error) {
-      console.log("Error fetching Pokémon data:", error);
-    }
+prevButton.addEventListener("click", () => {
+  if (currentPage > 1) {
+    currentPage--;
+    offset = (currentPage - 1) * limit;
+    pokemonList.innerHTML = "";
+    updateActivePageNumber();
+    getPokemonData();
   }
-}));
+});
+
+nextButton.addEventListener("click", () => {
+  currentPage++;
+  offset = (currentPage - 1) * limit;
+  pokemonList.innerHTML = "";
+  updateActivePageNumber();
+  console.log(botonId);
+  getPokemonData();
+});
+
+function navButtons(){
+  headerButtons.forEach((btn) =>
+    btn.addEventListener("click", async () => {
+      botonId = btn.id;
+      pokemonList.innerHTML = "";
+      offset = 0; 
+      currentPage = 1; 
+      try {
+        let allPokemons = []; 
+
+
+        const getAllPokemonsByType = async (offset) => {
+          const response = await fetch(`${url}?limit=${limit}&offset=${offset}`);
+          const data = await response.json();
+
+          const pokemonPromises = data.results.map(async (data) => {
+            const pokemonResponse = await fetch(data.url);
+            const pokemonData = await pokemonResponse.json();
+            const pokemon = {
+              id: pokemonData.id,
+              img: pokemonData.sprites.other["official-artwork"].front_default,
+              name: pokemonData.name,
+              height: pokemonData.height,
+              weight: pokemonData.weight,
+              types: pokemonData.types.map((type) => type.type.name),
+            };
+
+            return pokemon;
+          });
+
+          const pokemons = await Promise.all(pokemonPromises);
+          
+          const filteredPokemons = pokemons.filter((pokemon) => pokemon.types.includes(botonId));
+          
+          allPokemons = [...allPokemons, ...filteredPokemons]; 
+
+          const nextPageOffset = offset + limit;
+          if (nextPageOffset < data.count) {
+            await getAllPokemonsByType(nextPageOffset);
+          }
+        };
+
+        await getAllPokemonsByType(offset);
+        const totalPages = Math.ceil(allPokemons.length / limit);
+        renderPageNumbers(totalPages);
+        updateActivePageNumber();
+
+        const startIndex = (currentPage - 1) * limit;
+        const endIndex = startIndex + limit;
+        const pokemonsToDisplay = allPokemons.slice(startIndex, endIndex);
+        allPokemon = [];
+        allPokemon = pokemonsToDisplay;
+        allPokemon.forEach((pokemon) => {
+          showPokemon(pokemon);
+        });
+      } catch (error) {
+        console.log("Error fetching Pokémon data:", error);
+      }
+    })
+  );
+}
