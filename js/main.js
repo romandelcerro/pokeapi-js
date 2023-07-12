@@ -1,10 +1,11 @@
-let url = "https://pokeapi.co/api/v2/pokemon";
+let url = "https://pokeapi.co/api/v2/";
 const pokemonList = document.querySelector("#pokemonList");
 const headerButtons = document.querySelectorAll(".btn-header");
 let limit = 30;
 let offset = 0;
 let allPokemon = [];
 let botonId="null";
+let totalPages;
 document.addEventListener('DOMContentLoaded', () => {
   getPokemonData();
   navButtons();
@@ -16,7 +17,7 @@ let currentPage = 1;
 function renderPageNumbers(totalPages) {
   pageNumbersContainer.innerHTML = "";
 
-  const maxPageNumbers = Math.min(totalPages, 9); 
+  const maxPageNumbers = Math.min(totalPages, 3); 
 
   const startPage = Math.max(1, currentPage - Math.floor(maxPageNumbers / 2));
   const endPage = Math.min(totalPages, startPage + maxPageNumbers - 1);
@@ -58,53 +59,77 @@ function updateActivePageNumber() {
 }
 
 async function getPokemonData() {
-  try {
-    const response = await fetch(`${url}?limit=${limit}&offset=${offset}`);
-    const data = await response.json();
 
-    const pokemonPromises = data.results.map(async (data) => {
-      const pokemonResponse = await fetch(data.url);
-      const pokemonData = await pokemonResponse.json();
-      const pokemon = {
-        id: pokemonData.id,
-        img: pokemonData.sprites.other["official-artwork"].front_default,
-        name: pokemonData.name,
-        height: pokemonData.height,
-        weight: pokemonData.weight,
-        types: pokemonData.types.map((type) => type.type.name),
-      };
+  allPokemon= [];
 
-      return pokemon;
+  if(botonId!=="null"){
+    try {
+      console.log(botonId);
+      const response = await fetch(`${url}type/${botonId}`);
+      const data = await response.json();
+      console.log(data);
+      const pokemonPromises = data.pokemon.map(async (data) => {
+        const pokemonResponse = await fetch(data.pokemon.url);
+        const pokemonData = await pokemonResponse.json();
+        const pokemon = {
+          id: pokemonData.id,
+          img: pokemonData.sprites.other["official-artwork"].front_default,
+          name: pokemonData.name,
+          height: pokemonData.height,
+          weight: pokemonData.weight,
+          types: pokemonData.types.map((type) => type.type.name),
+        };
+  
+        return pokemon;
+      });
+    allPokemon = await Promise.all(pokemonPromises);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    const pokemonToShow = allPokemon.slice(startIndex, endIndex);
+
+    pokemonList.innerHTML = "";
+    pokemonToShow.forEach((pokemon) => {
+      showPokemon(pokemon);
     });
-    
-    
-    
-    allPokemon = [];
-
-    if(botonId!=="null"){
-      const pokemons = await Promise.all(pokemonPromises);
-      const filteredPokemons = pokemons.filter((pokemon) => pokemon.types.includes(botonId));
-
-      allPokemon = [...allPokemon, ...filteredPokemons];
-      
-      allPokemon.forEach((pokemon) => {
-        showPokemon(pokemon);
-      });
-
-    }else{
-      allPokemon = [];
-      allPokemon = await Promise.all(pokemonPromises);
-      allPokemon.forEach((pokemon) => {
-        showPokemon(pokemon);
-      });
-    }
-
-    const totalPages = Math.ceil(data.count / limit);
-    renderPageNumbers(totalPages);
-    updateActivePageNumber();
+    totalPages = Math.ceil(allPokemon.length / limit);
+      renderPageNumbers(totalPages);
+      updateActivePageNumber();
   } catch (error) {
     console.log("Error fetching Pokémon data:", error);
   }
+  }else{
+    try {
+      const response = await fetch(`${url}pokemon?limit=${limit}&offset=${offset}`);
+      const data = await response.json();
+  
+      const pokemonPromises = data.results.map(async (data) => {
+        const pokemonResponse = await fetch(data.url);
+        const pokemonData = await pokemonResponse.json();
+        const pokemon = {
+          id: pokemonData.id,
+          img: pokemonData.sprites.other["official-artwork"].front_default,
+          name: pokemonData.name,
+          height: pokemonData.height,
+          weight: pokemonData.weight,
+          types: pokemonData.types.map((type) => type.type.name),
+        };
+  
+        return pokemon;
+      });
+      allPokemon = await Promise.all(pokemonPromises);
+
+      allPokemon.forEach((pokemon) => {
+        showPokemon(pokemon);
+      });
+      totalPages = Math.ceil(data.count / limit);
+      renderPageNumbers(totalPages);
+      updateActivePageNumber();
+    } catch (error) {
+      console.log("Error fetching Pokémon data:", error);
+    }
+  }
+
+    
 }
 
 function showPokemon(pokemon) {
@@ -175,72 +200,32 @@ prevButton.addEventListener("click", () => {
 });
 
 nextButton.addEventListener("click", () => {
-  currentPage++;
-  offset = (currentPage - 1) * limit;
-  pokemonList.innerHTML = "";
-  updateActivePageNumber();
-  console.log(botonId);
-  getPokemonData();
+  if(currentPage<totalPages){
+    currentPage++;
+    offset = (currentPage - 1) * limit;
+    pokemonList.innerHTML = "";
+    updateActivePageNumber();
+    getPokemonData();
+  }else{
+
+  }
+  
 });
 
-function navButtons(){
+function navButtons() {
   headerButtons.forEach((btn) =>
     btn.addEventListener("click", async () => {
       botonId = btn.id;
       pokemonList.innerHTML = "";
-      offset = 0; 
-      currentPage = 1; 
-      try {
-        let allPokemons = []; 
+      offset = 0;
+      currentPage = 1;
+      totalPages = Math.ceil(allPokemon.length / limit);
+      renderPageNumbers(totalPages);
+      updateActivePageNumber();
+      updateActivePageNumber();
+      getPokemonData();
 
-
-        const getAllPokemonsByType = async (offset) => {
-          const response = await fetch(`${url}?limit=${limit}&offset=${offset}`);
-          const data = await response.json();
-
-          const pokemonPromises = data.results.map(async (data) => {
-            const pokemonResponse = await fetch(data.url);
-            const pokemonData = await pokemonResponse.json();
-            const pokemon = {
-              id: pokemonData.id,
-              img: pokemonData.sprites.other["official-artwork"].front_default,
-              name: pokemonData.name,
-              height: pokemonData.height,
-              weight: pokemonData.weight,
-              types: pokemonData.types.map((type) => type.type.name),
-            };
-
-            return pokemon;
-          });
-
-          const pokemons = await Promise.all(pokemonPromises);
-          
-          const filteredPokemons = pokemons.filter((pokemon) => pokemon.types.includes(botonId));
-          
-          allPokemons = [...allPokemons, ...filteredPokemons]; 
-
-          const nextPageOffset = offset + limit;
-          if (nextPageOffset < data.count) {
-            await getAllPokemonsByType(nextPageOffset);
-          }
-        };
-
-        await getAllPokemonsByType(offset);
-        const totalPages = Math.ceil(allPokemons.length / limit);
-        renderPageNumbers(totalPages);
-        updateActivePageNumber();
-
-        const startIndex = (currentPage - 1) * limit;
-        const endIndex = startIndex + limit;
-        const pokemonsToDisplay = allPokemons.slice(startIndex, endIndex);
-        allPokemon = [];
-        allPokemon = pokemonsToDisplay;
-        allPokemon.forEach((pokemon) => {
-          showPokemon(pokemon);
-        });
-      } catch (error) {
-        console.log("Error fetching Pokémon data:", error);
-      }
     })
   );
 }
+
