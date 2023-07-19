@@ -4,9 +4,9 @@ const headerButtons = document.querySelectorAll(".btn-header");
 let limit = 30;
 let offset = 0;
 let allPokemon = [];
-let botonId="null";
+let botonId = "null";
 let totalPages;
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener("DOMContentLoaded", () => {
   getPokemonData();
   navButtons();
 });
@@ -17,7 +17,7 @@ let currentPage = 1;
 function renderPageNumbers(totalPages) {
   pageNumbersContainer.innerHTML = "";
 
-  const maxPageNumbers = Math.min(totalPages, 3); 
+  const maxPageNumbers = Math.min(totalPages, 3);
 
   const startPage = Math.max(1, currentPage - Math.floor(maxPageNumbers / 2));
   const endPage = Math.min(totalPages, startPage + maxPageNumbers - 1);
@@ -31,15 +31,14 @@ function renderPageNumbers(totalPages) {
       pageNumber.classList.add("active");
     }
 
-    
     pageNumber.addEventListener("click", () => {
       currentPage = i;
-      offset = (currentPage - 1) * limit; 
+      offset = (currentPage - 1) * limit;
       pokemonList.innerHTML = "";
       getPokemonData();
       updateActivePageNumber();
     });
-    
+
     pageNumbersContainer.appendChild(pageNumber);
   }
 }
@@ -59,15 +58,19 @@ function updateActivePageNumber() {
 }
 
 async function getPokemonData() {
+  allPokemon = [];
 
-  allPokemon= [];
-
-  if(botonId!=="null"){
+  if (botonId !== "null") {
+    headerButtons.forEach((btn) => {
+      if (botonId === btn.id) {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    });
     try {
-      console.log(botonId);
       const response = await fetch(`${url}type/${botonId}`);
       const data = await response.json();
-      console.log(data);
       const pokemonPromises = data.pokemon.map(async (data) => {
         const pokemonResponse = await fetch(data.pokemon.url);
         const pokemonData = await pokemonResponse.json();
@@ -79,29 +82,31 @@ async function getPokemonData() {
           weight: pokemonData.weight,
           types: pokemonData.types.map((type) => type.type.name),
         };
-  
+
         return pokemon;
       });
-    allPokemon = await Promise.all(pokemonPromises);
-    const startIndex = (currentPage - 1) * limit;
-    const endIndex = startIndex + limit;
-    const pokemonToShow = allPokemon.slice(startIndex, endIndex);
+      allPokemon = await Promise.all(pokemonPromises);
+      const startIndex = (currentPage - 1) * limit;
+      const endIndex = startIndex + limit;
+      const pokemonToShow = allPokemon.slice(startIndex, endIndex);
 
-    pokemonList.innerHTML = "";
-    pokemonToShow.forEach((pokemon) => {
-      showPokemon(pokemon);
-    });
-    totalPages = Math.ceil(allPokemon.length / limit);
+      pokemonList.innerHTML = "";
+      pokemonToShow.forEach((pokemon) => {
+        showPokemon(pokemon);
+      });
+      totalPages = Math.ceil(allPokemon.length / limit);
       renderPageNumbers(totalPages);
       updateActivePageNumber();
-  } catch (error) {
-    console.log("Error fetching Pokémon data:", error);
-  }
-  }else{
+    } catch (error) {
+      console.log("Error fetching Pokémon data:", error);
+    }
+  } else {
     try {
-      const response = await fetch(`${url}pokemon?limit=${limit}&offset=${offset}`);
+      const response = await fetch(
+        `${url}pokemon?limit=${limit}&offset=${offset}`
+      );
       const data = await response.json();
-  
+
       const pokemonPromises = data.results.map(async (data) => {
         const pokemonResponse = await fetch(data.url);
         const pokemonData = await pokemonResponse.json();
@@ -113,7 +118,7 @@ async function getPokemonData() {
           weight: pokemonData.weight,
           types: pokemonData.types.map((type) => type.type.name),
         };
-  
+
         return pokemon;
       });
       allPokemon = await Promise.all(pokemonPromises);
@@ -128,8 +133,6 @@ async function getPokemonData() {
       console.log("Error fetching Pokémon data:", error);
     }
   }
-
-    
 }
 
 function showPokemon(pokemon) {
@@ -168,22 +171,21 @@ function pokemonId(pokemon) {
   let pokeId = pokemon.id.toString();
 
   if (pokeId.length === 1) {
-    return pokeId = "000" + pokeId;
-  } 
-  else if (pokeId.length === 2) {
-    return pokeId = "00" + pokeId;
-  }
-  else if (pokeId.length === 3) {
-    return pokeId = "0" + pokeId;
-  } 
-  else {
+    return (pokeId = "000" + pokeId);
+  } else if (pokeId.length === 2) {
+    return (pokeId = "00" + pokeId);
+  } else if (pokeId.length === 3) {
+    return (pokeId = "0" + pokeId);
+  } else {
     return pokeId;
   }
 }
 
 function pokemonTypes(pokemon) {
-  let tipos = pokemon.types.map((type) => `<p class="${type} type">${type}</p>`);
-  return tipos.join('');
+  let tipos = pokemon.types.map(
+    (type) => `<p class="${type} type">${type}</p>`
+  );
+  return tipos.join("");
 }
 
 const prevButton = document.querySelector("#prevButton");
@@ -200,16 +202,14 @@ prevButton.addEventListener("click", () => {
 });
 
 nextButton.addEventListener("click", () => {
-  if(currentPage<totalPages){
+  if (currentPage < totalPages) {
     currentPage++;
     offset = (currentPage - 1) * limit;
     pokemonList.innerHTML = "";
     updateActivePageNumber();
     getPokemonData();
-  }else{
-
+  } else {
   }
-  
 });
 
 function navButtons() {
@@ -224,8 +224,6 @@ function navButtons() {
       updateActivePageNumber();
       updateActivePageNumber();
       getPokemonData();
-
     })
   );
 }
-

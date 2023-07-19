@@ -82,6 +82,10 @@ header {
   display: flex;
   justify-content: center;
 }
+.btn-header.active {
+  border: 2px solid var(--clr-black);
+  transform: scale(1.15);
+}
 .nav-item:hover {
   transform: scale(1.15);
   transition: 0.2s;
@@ -119,7 +123,7 @@ header {
 }
 
 .page-number {
-  padding: 0.75rem 1.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 100vmax;
   font-size: 0.8rem;
   font-weight: 500;
@@ -128,18 +132,16 @@ header {
 }
 
 .page-number:hover {
-  background-color: var(--clr-black);
-  color: var(--clr-white);
+  transform: scale(1.2);
 }
 
 .page-number.active {
-  background-color: var(--clr-black);
-  color: var(--clr-white);
+  border: 2px solid var(--clr-black);
 }
 
 #prevButton,
 #nextButton {
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.25rem;
   border-radius: 100vmax;
   font-size: 2rem;
   font-weight: 500;
@@ -148,7 +150,7 @@ header {
 
 #prevButton:hover,
 #nextButton:hover {
-  transform: scale(1.5);
+  transform: scale(1.25);
   transition: 0.5s;
 }
 
